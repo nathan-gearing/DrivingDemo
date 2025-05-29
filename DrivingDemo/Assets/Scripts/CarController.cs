@@ -15,6 +15,8 @@ public class CarController : MonoBehaviour
     {
         public GameObject wheelModel;
         public WheelCollider wheelCollider;
+        public GameObject wheelEffectObj;
+        public ParticleSystem smokeParticles;
         public Axel axel;
     }
 
@@ -33,10 +35,13 @@ public class CarController : MonoBehaviour
 
     private Rigidbody carRb;
 
+    private CarLights carLights;
+
     void Start()
     {
         carRb = GetComponent<Rigidbody>();
         carRb.centerOfMass = _centerOfMass;
+        carLights = GetComponent<CarLights>();
     }
 
     void Update()
@@ -50,6 +55,7 @@ public class CarController : MonoBehaviour
         Move();
         Steer();
         Brake();
+        WheelEffect();
     }
     void GetInputs()
     {
@@ -85,6 +91,9 @@ public class CarController : MonoBehaviour
             {
                 wheel.wheelCollider.brakeTorque = 300 * brakeAcceleration * Time.deltaTime;
             }
+
+            carLights.isBackLightOn = true;
+            carLights.OperateBackLights();
         }
         else
         {
@@ -92,6 +101,8 @@ public class CarController : MonoBehaviour
             {
                 wheel.wheelCollider.brakeTorque = 0;
             }
+            carLights.isBackLightOn = false;
+            carLights.OperateBackLights();
         }
     }
 
@@ -104,6 +115,22 @@ public class CarController : MonoBehaviour
             wheel.wheelCollider.GetWorldPose(out pos, out rot);
             wheel.wheelModel.transform.position = pos;
             wheel.wheelModel.transform.rotation = rot;
+        }
+    }
+
+    void WheelEffect()
+    {
+        foreach (var wheel in wheels)
+        {
+            if(Input.GetKey(KeyCode.Space) && wheel.axel == Axel.Rear && wheel.wheelCollider.isGrounded == true && carRb.linearVelocity.magnitude >= 10.0f)
+            {
+                wheel.wheelEffectObj.GetComponentInChildren<TrailRenderer>().emitting = true;
+                wheel.smokeParticles.Emit(1);
+            }
+            else
+            {
+                wheel.wheelEffectObj.GetComponentInChildren<TrailRenderer>().emitting = false;
+            }
         }
     }
 }
