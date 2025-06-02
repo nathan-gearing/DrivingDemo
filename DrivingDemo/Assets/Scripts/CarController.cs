@@ -20,6 +20,17 @@ public class CarController : MonoBehaviour
         public Axel axel;
     }
 
+    public float engineRPM;
+    public float minRPM = 1000f;
+    public float maxRPM = 7000f;
+
+    public int currentGear = 1;
+    public float[] gearRatios = { 2.66f, 1.78f, 1.30f, 1.00f, 0.74f };
+    public float finalDriveRatio = 3.42f;
+
+    public float wheelRadius = 0.34f;
+    public float engineTorque = 250f;
+
     public float maxAcceleration = 30.0f;
     public float brakeAcceleration = 50.0f;
 
@@ -53,6 +64,8 @@ public class CarController : MonoBehaviour
     void FixedUpdate()
     {
         Move();
+        UpdateEngineRPM();
+        AutoShift();
         Steer();
         Brake();
         WheelEffect();
@@ -65,10 +78,27 @@ public class CarController : MonoBehaviour
 
     void Move()
     {
-        foreach (var wheel in wheels)
+        /*foreach (var wheel in wheels)
         {
             wheel.wheelCollider.motorTorque = moveInput * 600 * maxAcceleration * Time.deltaTime;
+        }*/
+        float driveTorque = engineTorque * gearRatios[currentGear - 1] * finalDriveRatio;
+        driveTorque *= moveInput;
+
+        foreach (var wheel in wheels)
+        {
+            if (wheel.axel == Axel.Rear)
+            {
+                WheelHit hit;
+                wheel.wheelCollider.GetGroundHit(out hit);
+
+                float slip = Mathf.Abs(hit.forwardSlip);
+                float tractionControl = Mathf.Clamp01(1.0f - slip);
+
+                wheel.wheelCollider.motorTorque = driveTorque * tractionControl;
+            }
         }
+
     }
 
     void Steer()
@@ -131,6 +161,40 @@ public class CarController : MonoBehaviour
             {
                 wheel.wheelEffectObj.GetComponentInChildren<TrailRenderer>().emitting = false;
             }
+        }
+    }
+
+    void UpdateEngineRPM()
+    {
+        float averageWheelRPM = 0f;
+        int drivenWheels = 0;
+
+        foreach (var wheel in wheels)
+        {
+            if (wheel.axel == Axel.Rear)
+            {
+                averageWheelRPM += wheel.wheelCollider.rpm;
+                drivenWheels++;
+            }
+
+            if (drivenWheels > 0)
+            {
+                averageWheelRPM /= drivenWheels;
+            }
+
+            engineRPM = Mathf.Clamp(averageWheelRPM * gearRatios[currentGear - 1] * finalDriveRatio, minRPM, maxRPM);
+        }
+    }
+
+    void AutoShift()
+    {
+        if (engineRPM > maxRPM - 500 && currentGear < gearRatios.Length)
+        {
+            currentGear++;
+        }
+        else if (engineRPM < minRPM + 500 && currentGear > 1)
+        {
+            currentGear--;
         }
     }
 }
