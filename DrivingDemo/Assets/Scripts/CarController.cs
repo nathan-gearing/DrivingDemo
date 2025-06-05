@@ -24,6 +24,10 @@ public class CarController : MonoBehaviour
     public float minRPM = 1000f;
     public float maxRPM = 7000f;
 
+    public float downforceMultiplier = 50f;
+    public float steerDampening = 0.7f;
+    public float steerSpeedThreshold = 50f;
+
     public int currentGear = 1;
     public float[] gearRatios = { 2.66f, 1.78f, 1.30f, 1.00f, 0.74f };
     public float finalDriveRatio = 3.42f;
@@ -69,6 +73,7 @@ public class CarController : MonoBehaviour
         Steer();
         Brake();
         WheelEffect();
+        ApplyDownforce();
     }
     void GetInputs()
     {
@@ -103,6 +108,10 @@ public class CarController : MonoBehaviour
 
     void Steer()
     {
+        float speed = carRb.linearVelocity.magnitude;
+        float speedFactor = Mathf.Clamp01(speed / steerSpeedThreshold);
+        float adjustedSteerInput = steerInput * (1f - speedFactor * steerDampening);
+
         foreach (var wheel in wheels)
         {
             if (wheel.axel == Axel.Front)
@@ -134,6 +143,12 @@ public class CarController : MonoBehaviour
             carLights.isBackLightOn = false;
             carLights.OperateBackLights();
         }
+    }
+
+    void ApplyDownforce()
+    {
+        float downforce = carRb.linearVelocity.magnitude * downforceMultiplier;
+        carRb.AddForce(-transform.up * downforce);
     }
 
     void AnimateWheels()

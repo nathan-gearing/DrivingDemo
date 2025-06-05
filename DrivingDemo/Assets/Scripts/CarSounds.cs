@@ -5,12 +5,13 @@ using System.Collections.Generic;
 
 public class CarSounds : MonoBehaviour
 {
-    public float minSpeed;
-    public float maxSpeed;
-    private float currentSpeed;
+    
+    public float minRPM = 800f;
+    public float maxRPM = 7000f;
 
-    private Rigidbody carRb;
+    
     private AudioSource carEngine;
+    private CarController carController;
 
     public float minPitch;
     public float maxPitch;
@@ -19,7 +20,7 @@ public class CarSounds : MonoBehaviour
     void Start()
     {
         carEngine = GetComponent<AudioSource>();
-        carRb = GetComponent<Rigidbody>();
+        carController = GetComponent<CarController>();
     }
 
     void Update()
@@ -30,23 +31,8 @@ public class CarSounds : MonoBehaviour
     
     void EngineSound()
     {
-        currentSpeed = carRb.linearVelocity.magnitude;
-        pitchFromCar = carRb.linearVelocity.magnitude / 60f;
-
-        if (currentSpeed < minSpeed)
-        {
-            carEngine.pitch = minPitch;
-        }
-
-        if (currentSpeed > minSpeed && currentSpeed < maxSpeed)
-        {
-            carEngine.pitch = minPitch + pitchFromCar;
-        }
-
-        if (currentSpeed > maxSpeed)
-        {
-            carEngine.pitch = maxPitch;
-        }
+        float rpmNormalized = Mathf.InverseLerp(minRPM, maxRPM, carController.engineRPM);
+        carEngine.pitch = Mathf.Lerp(minPitch, maxPitch, rpmNormalized);
     }
 
 }
